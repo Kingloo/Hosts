@@ -75,31 +75,26 @@ namespace hosts.HostSources
         {
             if (_uri == null) { throw new ArgumentNullException(nameof(_uri)); }
             
-            HttpResponseMessage resp = default;
-
             string text = string.Empty;
 
             try
             {
-                resp = await client.GetAsync(_uri).ConfigureAwait(false);
-
-                if (resp.IsSuccessStatusCode)
+                using (HttpResponseMessage resp = await client.GetAsync(_uri).ConfigureAwait(false))
                 {
-                    _wasAvailable = true;
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        _wasAvailable = true;
 
-                    text = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
-                }
-                else
-                {
-                    _wasAvailable = false;
+                        text = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        _wasAvailable = false;
+                    }
                 }
             }
             catch (HttpRequestException) { }
             catch (TaskCanceledException) { }
-            finally
-            {
-                resp?.Dispose();
-            }
 
             return text;
         }
