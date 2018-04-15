@@ -123,7 +123,7 @@ namespace hosts
                     let domainArray = task.Result
                     from domain in domainArray
                     select domain)
-                    .Distinct();
+                        .Distinct();
         }
 
         private static async Task<IEnumerable<Domain>> LoadExclusionsAsync(string workingDirectory)

@@ -51,7 +51,7 @@ namespace hosts.HostSources
         {
             string text = await DownloadAsync().ConfigureAwait(false);
 
-            if (String.IsNullOrWhiteSpace(text))
+            if (!WasAvailable || String.IsNullOrEmpty(text))
             {
                 return Array.Empty<Domain>();
             }
