@@ -26,20 +26,10 @@ namespace hosts.HostSources
         protected HostSourceBase(Uri uri)
         {
             _uri = uri ?? throw new ArgumentNullException(nameof(uri));
-
-            // if (client == null)
-            // {
-            //     client = new HttpClient
-            //     {
-            //         Timeout = TimeSpan.FromSeconds(10d)
-            //     };
-            // }
         }
 
         public static IEnumerable<HostSourceBase> AllSources()
         {
-            // an easy way to get every currently available source
-
             yield return new MVPS();
             yield return new SANS(new Uri("https://isc.sans.edu/feeds/suspiciousdomains_Low.txt"));
             yield return new SANS(new Uri("https://isc.sans.edu/feeds/suspiciousdomains_Medium.txt"));
@@ -56,15 +46,18 @@ namespace hosts.HostSources
                 return Array.Empty<Domain>();
             }
 
-            string[] lines = await ReadLinesAsync(text).ConfigureAwait(false);
-
             var domains = new List<Domain>();
 
-            foreach (string each in lines)
+            string line = string.Empty;
+
+            using (StringReader sr = new StringReader(text))
             {
-                if (TryCreate(each, out Domain domain))
+                while ((line = await sr.ReadLineAsync().ConfigureAwait(false)) != null)
                 {
-                    domains.Add(domain);
+                    if (TryCreate(line, out Domain domain))
+                    {
+                        domains.Add(domain);
+                    }
                 }
             }
 
@@ -73,13 +66,13 @@ namespace hosts.HostSources
         
         private async Task<string> DownloadAsync()
         {
-            if (_uri == null) { throw new ArgumentNullException(nameof(_uri)); }
+            if (Uri == null) { throw new ArgumentNullException(nameof(Uri)); }
             
             string text = string.Empty;
 
             try
             {
-                using (HttpResponseMessage resp = await client.GetAsync(_uri).ConfigureAwait(false))
+                using (HttpResponseMessage resp = await client.GetAsync(Uri).ConfigureAwait(false))
                 {
                     if (resp.IsSuccessStatusCode)
                     {
@@ -98,24 +91,6 @@ namespace hosts.HostSources
 
             return text;
         }
-
-        private async Task<string[]> ReadLinesAsync(string text)
-        {
-            var lines = new List<string>();
-
-            string line = string.Empty;
-
-            using (StringReader sr = new StringReader(text))
-            {
-                while ((line = await sr.ReadLineAsync().ConfigureAwait(false)) != null)
-                {
-                    lines.Add(line);
-                }
-            }
-
-            return lines.ToArray();
-        }
-
 
         protected abstract bool TryCreate(string line, out Domain domain);
 

@@ -16,7 +16,7 @@ namespace hosts.HostSources
                 return false;
             }
 
-            if (line.StartsWith("Site", StringComparison.OrdinalIgnoreCase))
+            if (line.StartsWith("site", StringComparison.OrdinalIgnoreCase))
             {
                 domain = null;
                 return false;

@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace hosts.DnsServerTargets
 {
+    /// <summary>
+    /// Unbound DNS server.
+    /// </summary>
     public class Unbound : DnsServerTargetBase
     {
         private readonly StringBuilder _sb = new StringBuilder();
@@ -16,13 +17,6 @@ namespace hosts.DnsServerTargets
         {
             get => _domains;
             set => _domains = value;
-        }
-
-        private FileInfo _file = null;
-        public override FileInfo File
-        {
-            get => _file == null ? new FileInfo(Path.Combine(defaultDirectory, "unbound.txt")) : _file;
-            set => _file = value;
         }
 
         protected override string Format(Domain domain)

@@ -3,89 +3,102 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using hosts.Common;
 using hosts.DnsServerTargets;
 using hosts.HostSources;
-using hosts.Common;
 
 namespace hosts
 {
-    public class Program
+    public partial class Program
     {
+        private static DirectoryInfo workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+
         public static async Task<int> Main(string[] args)
         {
-            string workingDirectory = GetFromCmdLine(args, "-outputDir", Environment.CurrentDirectory);
-            string bindBlackHoleFilePath = GetFromCmdLine(args, "-bindBlackHoleFile", "/etc/bind/db.poison");
-            
-            IEnumerable<Domain> additions = await LoadAdditionsAsync(workingDirectory).ConfigureAwait(false);
-            IEnumerable<Domain> downloaded = await DownloadAndCreateDomainsAsync().ConfigureAwait(false);
-            IEnumerable<Domain> exclusions = await LoadExclusionsAsync(workingDirectory).ConfigureAwait(false);
+            DnsServerType serverType = GetServerType(GetFromCmdLine("-type"));
 
-            List<Domain> domains = additions
-                .Union(downloaded)
-                .Except(exclusions)
-                .ToList();
-
-            Console.WriteLine($"{domains.Count} domains to block");
-
-            var serverTargets = new DnsServerTargetBase[]
+            if (serverType == DnsServerType.None)
             {
-                new Bind(bindBlackHoleFilePath)
-                {
-                    Domains = domains,
-                    File = new FileInfo(Path.Combine(workingDirectory, "bind.txt"))
-                },
-                new Unbound()
-                {
-                    Domains = domains,
-                    File = new FileInfo(Path.Combine(workingDirectory, "unbound.txt"))
-                }/*,
-                new Windows()
-                {
-                    Domains = domains,
-                    File = new FileInfo(Path.Combine(workingDirectory, "hosts"))
-                }*/
-            };
+                return (int)ReturnCodes.BadServerType;
+            }
 
-            await WriteFilesAsync(serverTargets).ConfigureAwait(false);
+            List<Domain> domains = await GetDomainsAsync().ConfigureAwait(false);
+
+            DnsServerTargetBase serverTarget = null;
+
+            switch (serverType)
+            {
+                case DnsServerType.Bind:
+                    string blackHoleZoneFile = GetFromCmdLine("-bindBlackHoleZoneFile") ?? "/etc/bind/db.poison";
+                    serverTarget = new Bind(blackHoleZoneFile) { Domains = domains };
+                    break;
+                case DnsServerType.Unbound:
+                    serverTarget = new Unbound { Domains = domains };
+                    break;
+                case DnsServerType.Windows:
+                    serverTarget = new Windows { Domains = domains };
+                    break;
+                default:
+                    return (int)ReturnCodes.ServerTargetNull;
+            }
+
+            await WriteServerTargetAsync(serverTarget).ConfigureAwait(false);
 
 #if DEBUG
             Console.ReadKey();
 #endif
 
-            return 0;
+            return (int)ReturnCodes.Success;
         }
 
-        private static string GetFromCmdLine(string[] args, string value, string defaultValue)
+        private static string GetFromCmdLine(string value)
         {
-            string toRet = defaultValue;
+            string[] args = Environment.GetCommandLineArgs();
             
             for (int i = 0; i < args.Length; i++)
             {
-                if (args[i].Equals(value))
+                if (args[i].Equals(value, StringComparison.OrdinalIgnoreCase))
                 {
-                    toRet = args[i + 1];
+                    return args[i + 1];
                 }
             }
 
-            Console.WriteLine($"{value}: {toRet}");
-
-            return toRet;
+            return null;
         }
 
-        private static async Task<IEnumerable<Domain>> LoadAdditionsAsync(string workingDirectory)
+        private static DnsServerType GetServerType(string value)
         {
-            FileInfo addedHosts = new FileInfo(Path.Combine(workingDirectory, "addedHosts.txt"));
+            return Enum.TryParse(
+                typeof(DnsServerType),
+                value,
+                ignoreCase: true,
+                out object serverType)
+                    ? (DnsServerType)serverType
+                    : DnsServerType.None;
+        }
 
-            Console.Write("loading custom additions... ");
-
-            if (!addedHosts.Exists)
+        private static async Task<List<Domain>> GetDomainsAsync()
+        {
+            var tasks = new List<Task<IEnumerable<Domain>>>
             {
-                Console.WriteLine("file not found");
+                Task.Run(() => LoadDomainsAsync(new FileInfo(Path.Combine(workingDirectory.FullName, "addedHosts.txt")))),
+                Task.Run(DownloadDomainsAsync),
+                Task.Run(() => LoadDomainsAsync(new FileInfo(Path.Combine(workingDirectory.FullName, "excludedHosts.txt"))))
+            };
 
-                return Enumerable.Empty<Domain>();
-            }
+            await Task.WhenAll();
 
-            string[] lines = await FileSystem.GetLinesAsync(addedHosts).ConfigureAwait(false);
+            return tasks[0].Result
+               .Union(tasks[1].Result)
+               .Except(tasks[2].Result)
+               .ToList();
+        }
+
+        private static async Task<IEnumerable<Domain>> LoadDomainsAsync(FileInfo file)
+        {
+            if (!file.Exists) { return Enumerable.Empty<Domain>(); }
+
+            string[] lines = await FileSystem.GetLinesAsync(file).ConfigureAwait(false);
 
             var domains = new List<Domain>();
 
@@ -97,16 +110,12 @@ namespace hosts
                 }
             }
 
-            Console.WriteLine($"success - {domains.Count} domain(s) added");
-
             return domains;
         }
 
-        private static async Task<IEnumerable<Domain>> DownloadAndCreateDomainsAsync()
+        private static async Task<IEnumerable<Domain>> DownloadDomainsAsync()
         {
             var downloadTasks = new List<Task<Domain[]>>();
-
-            Console.Write("downloading... ");
 
             foreach (HostSourceBase each in HostSourceBase.AllSources())
             {
@@ -117,8 +126,6 @@ namespace hosts
 
             await Task.WhenAll(downloadTasks).ConfigureAwait(false);
 
-            Console.WriteLine("finished!");
-
             return (from task in downloadTasks
                     let domainArray = task.Result
                     from domain in domainArray
@@ -126,75 +133,19 @@ namespace hosts
                         .Distinct();
         }
 
-        private static async Task<IEnumerable<Domain>> LoadExclusionsAsync(string workingDirectory)
+        private static async Task WriteServerTargetAsync(DnsServerTargetBase serverTarget)
         {
-            FileInfo excludedHosts = new FileInfo(Path.Combine(workingDirectory, "excludedHosts.txt"));
-
-            Console.Write("loading exclusions... ");
-
-            if (!excludedHosts.Exists)
+            using (TextWriter tw = Console.Out)
             {
-                Console.WriteLine("file not found");
-
-                return Enumerable.Empty<Domain>();
-            }
-
-            string[] lines = await FileSystem.GetLinesAsync(excludedHosts).ConfigureAwait(false);
-
-            var domains = new List<Domain>();
-
-            foreach (string line in lines)
-            {
-                if (Domain.TryCreate(line, out Domain domain))
+#if DEBUG
+                foreach (string line in serverTarget.Emit().Take(20))
+#else
+                foreach (string line in serverTarget.Emit())
+#endif
                 {
-                    domains.Add(domain);
+                    await tw.WriteLineAsync(line).ConfigureAwait(false);
                 }
             }
-
-            Console.WriteLine($"success - {domains.Count} domain(s) excluded");
-
-            return domains;
-        }
-
-        private static Task WriteFilesAsync(DnsServerTargetBase[] serverTargets)
-        {
-            if (serverTargets.Length == 0)
-            {
-                return Task.CompletedTask;
-            }
-
-            var tasks = new List<Task>();
-
-            foreach (var each in serverTargets)
-            {
-                // don't add WriteFileAsync.ConfAwait
-                // the message at the end of WriteFileAsync isn't printed to console
-                Task task = Task.Run(() => WriteFileAsync(each)); // WORKS!
-
-                tasks.Add(task);
-            }
-
-            return Task.WhenAll(tasks);
-        }
-
-        private static async Task WriteFileAsync(DnsServerTargetBase serverTarget)
-        {
-            if (serverTarget == null) { throw new ArgumentNullException(nameof(serverTarget)); }
-
-            try
-            {
-                await FileSystem.WriteLinesAsync(
-                    serverTarget.File,
-                    serverTarget.Emit().ToList(),
-                    FileMode.Append)
-                        .ConfigureAwait(false);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                Console.WriteLine($"failure! unauthorized access when trying to create {serverTarget.File.FullName}");
-            }
-
-            Console.WriteLine($"wrote file for {serverTarget.ToString()} to {serverTarget.File.FullName}");
         }
     }
 }

@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace hosts.DnsServerTargets
 {
+    /// <summary>
+    /// Berkeley Internet Name Domain (BIND) DNS server.
+    /// </summary>
     public class Bind : DnsServerTargetBase
     {
         private readonly string _blackHoleZoneFilePath = string.Empty;
@@ -21,21 +23,16 @@ namespace hosts.DnsServerTargets
             set => _domains = value;
         }
 
-        private FileInfo _file = null;
-        public override FileInfo File
-        {
-            get => _file == null ? new FileInfo(Path.Combine(defaultDirectory, "bind.txt")) : _file;
-            set => _file = value;
-        }
-
         public Bind(string blackHoleZoneFilePath)
         {
-            if (String.IsNullOrWhiteSpace(blackHoleZoneFilePath))
+            if (String.IsNullOrEmpty(blackHoleZoneFilePath))
             {
-                throw new ArgumentNullException(nameof(blackHoleZoneFilePath));
+                _blackHoleZoneFilePath = "/etc/bind/db.poison";
             }
-
-            _blackHoleZoneFilePath = blackHoleZoneFilePath;
+            else
+            {
+                _blackHoleZoneFilePath = blackHoleZoneFilePath;
+            }
         }
         
         protected override string Format(Domain domain)
@@ -49,7 +46,7 @@ namespace hosts.DnsServerTargets
             Sb.Append("\"; };");
 
             // e.g.
-            // zone "example.com" { type master; file "/etc/bind/blackHoleZoneFile"; };
+            // zone "example.com" { type master; file "/etc/bind/db.poison"; };
 
             return Sb.ToString();
         }

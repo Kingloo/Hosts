@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -18,13 +17,6 @@ namespace hosts.DnsServerTargets
         {
             get => _domains;
             set => _domains = value;
-        }
-
-        private FileInfo _file = null;
-        public override FileInfo File
-        {
-            get => _file == null ? new FileInfo(Path.Combine(defaultDirectory, "hosts")) : _file;
-            set => _file = value;
         }
 
         protected override string Format(Domain domain)
