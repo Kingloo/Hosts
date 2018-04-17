@@ -9,7 +9,7 @@ using hosts.HostSources;
 
 namespace hosts
 {
-    public partial class Program
+    public static class Program
     {
         private static DirectoryInfo workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
 
