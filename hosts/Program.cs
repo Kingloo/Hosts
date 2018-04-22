@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using hosts.Common;
 using hosts.DnsServerTargets;
@@ -11,7 +13,7 @@ namespace hosts
 {
     public static class Program
     {
-        private static DirectoryInfo workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+        private static DirectoryInfo workingDirectory = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
 
         public static async Task<int> Main(string[] args)
         {
