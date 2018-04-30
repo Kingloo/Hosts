@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -22,6 +23,17 @@ namespace hosts.DnsServerTargets
             {
                 yield return Format(each);
             }
+        }
+
+        public static DnsServerType ParseServerType(string value)
+        {
+            return Enum.TryParse(
+                typeof(DnsServerType),
+                value,
+                ignoreCase: true,
+                out object serverType)
+                    ? (DnsServerType)serverType
+                    : DnsServerType.None;
         }
 
         public override string ToString() => GetType().Name;

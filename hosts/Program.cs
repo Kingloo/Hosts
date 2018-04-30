@@ -17,7 +17,7 @@ namespace hosts
 
         public static async Task<int> Main(string[] args)
         {
-            DnsServerType serverType = GetServerType(GetFromCmdLine("-type"));
+            DnsServerType serverType = DnsServerTargetBase.ParseServerType(GetFromCmdLine("-type"));
 
             if (serverType == DnsServerType.None)
             {
@@ -44,7 +44,7 @@ namespace hosts
                     return (int)ReturnCodes.ServerTargetNull;
             }
 
-            await WriteServerTargetAsync(serverTarget).ConfigureAwait(false);
+            await WriteServerTargetAsync(serverTarget, Console.OpenStandardOutput());
 
 #if DEBUG
             Console.ReadKey();
@@ -61,22 +61,14 @@ namespace hosts
             {
                 if (args[i].Equals(value, StringComparison.OrdinalIgnoreCase))
                 {
-                    return args[i + 1];
+                    if (i < args.GetUpperBound(0)) // in case there isn't actually another arg
+                    {
+                        return args[i + 1];
+                    }
                 }
             }
 
             return null;
-        }
-
-        private static DnsServerType GetServerType(string value)
-        {
-            return Enum.TryParse(
-                typeof(DnsServerType),
-                value,
-                ignoreCase: true,
-                out object serverType)
-                    ? (DnsServerType)serverType
-                    : DnsServerType.None;
         }
 
         private static async Task<List<Domain>> GetDomainsAsync()
@@ -88,7 +80,7 @@ namespace hosts
                 Task.Run(() => LoadDomainsAsync(new FileInfo(Path.Combine(workingDirectory.FullName, "excludedHosts.txt"))))
             };
 
-            await Task.WhenAll();
+            await Task.WhenAll().ConfigureAwait(false);
 
             return tasks[0].Result
                .Union(tasks[1].Result)
@@ -135,9 +127,9 @@ namespace hosts
                         .Distinct();
         }
 
-        private static async Task WriteServerTargetAsync(DnsServerTargetBase serverTarget)
+        private static async Task WriteServerTargetAsync(DnsServerTargetBase serverTarget, Stream stream)
         {
-            using (TextWriter tw = Console.Out)
+            using (StreamWriter sw = new StreamWriter(stream))
             {
 #if DEBUG
                 foreach (string line in serverTarget.Emit().Take(20))
@@ -145,7 +137,7 @@ namespace hosts
                 foreach (string line in serverTarget.Emit())
 #endif
                 {
-                    await tw.WriteLineAsync(line).ConfigureAwait(false);
+                    await sw.WriteLineAsync(line).ConfigureAwait(false);
                 }
             }
         }
