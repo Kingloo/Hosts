@@ -9,6 +9,8 @@ using hosts.Common;
 using hosts.DnsServerTargets;
 using hosts.HostSources;
 
+// a comment
+
 namespace hosts
 {
     public static class Program
