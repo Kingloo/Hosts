@@ -11,11 +11,13 @@ module DataTypes =
         | ErrorServerTypeUnknown = -2
 
     let blackHole = "0.0.0.0"
+    
 #if DEBUG
     let directory = Environment.CurrentDirectory
 #else
     let directory = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location)
 #endif
+    
     let addedHostsFilePath = Path.Combine (directory, "addedHosts.txt")
     let excludedHostsFilePath = Path.Combine (directory, "excludedHosts.txt")
     let customExtrasFilePath = Path.Combine (directory, "customExtras.txt")

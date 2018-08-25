@@ -22,7 +22,7 @@ module Program =
                         | "windows" -> Windows
                         | _ -> Unknown
                 with
-                    | :? IndexOutOfRangeException as ex -> Unknown                
+                    | :? IndexOutOfRangeException -> Unknown
             | None -> Missing
 
     let getLinesFromWebString (webString: string) (domainSource: DomainSource): Async<seq<string>> =
@@ -43,10 +43,9 @@ module Program =
             return lines :> seq<string>
         }        
 
-    let downloadDomainSource (domainSource: DomainSource) : Async<seq<string>> =
+    let downloadDomainSource (client: HttpClient) (domainSource: DomainSource) : Async<seq<string>> =
         async {
             try
-                use client = new HttpClient()
                 let! result = client.GetStringAsync(domainSource.Url) |> Async.AwaitTask
                 return! getLinesFromWebString result domainSource
             with
@@ -56,8 +55,9 @@ module Program =
         }
 
     let getRemoteDomains domainSources : seq<string> =
+        use client = new HttpClient()
         domainSources
-        |> List.map downloadDomainSource
+        |> List.map (downloadDomainSource (client))
         |> Async.Parallel
         |> Async.RunSynchronously
         |> Array.reduce (fun acc item -> Seq.append acc item) // turns an array of seqs into one seq of everything
