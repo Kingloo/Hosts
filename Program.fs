@@ -5,6 +5,7 @@ module Program =
     open System
     open System.IO
     open System.Net.Http
+    open System.Security
     open DataTypes
 
     let writeMessage (message: string) =
@@ -57,15 +58,15 @@ module Program =
     let getRemoteDomains domainSources : seq<string> =
         use client = new HttpClient()
         domainSources
-        |> List.map (downloadDomainSource (client))
-        |> Async.Parallel
-        |> Async.RunSynchronously
-        |> Array.reduce (fun acc item -> Seq.append acc item) // turns an array of seqs into one seq of everything
+            |> List.map (downloadDomainSource (client))
+            |> Async.Parallel
+            |> Async.RunSynchronously
+            |> Array.reduce (fun acc item -> Seq.append acc item) // turns an array of seqs into one seq of everything
 
     let printLines (lines: seq<string>) =
         use writer = Console.Out
         lines
-        |> Seq.iter (fun line -> writer.WriteLine(line))
+            |> Seq.iter (fun line -> writer.WriteLine(line))
 
     let printDomains (serverType: DnsServerType) (domains: seq<string>) =
         domains
@@ -79,9 +80,13 @@ module Program =
             let lines = File.ReadAllLines filePath
             writeMessage ("loaded " + lines.Length.ToString() + " lines from " + filePath)
             lines
-        with _ ->
-            writeMessage (filePath + " was not found")
-            Array.empty
+        with
+            | :? FileNotFoundException -> writeMessage (filePath + " was not found"); Array.empty
+            | :? DirectoryNotFoundException -> writeMessage "directory not found"; Array.empty
+            | :? PathTooLongException -> writeMessage (filePath + " exceeded path character limit"); Array.empty
+            | :? NotSupportedException -> writeMessage (filePath + " is an unsupported format"); Array.empty
+            | :? SecurityException -> writeMessage ("you do not have the required permissions for " + filePath); Array.empty
+            | :? IOException -> writeMessage ("an i/o error occurred while opening " + filePath); Array.empty
 
     [<EntryPoint>]
     let main args =
@@ -90,7 +95,7 @@ module Program =
                 writeMessage "! server type unknown !"
                 int ExitCodes.ErrorServerTypeUnknown
             | Missing ->
-                writeMessage "! no domain type switch !"
+                writeMessage "! no \"-type\" switch !"
                 int ExitCodes.ErrorServerTypeSwitchMissing
             | serverType ->
                 let customExtras = loadLinesFromFile customExtrasFilePath
@@ -98,9 +103,9 @@ module Program =
                 let excludedHosts = loadLinesFromFile excludedHostsFilePath
                 printLines customExtras
                 domainSources
-                |> getRemoteDomains
-                |> Seq.append addedHosts
-                |> Seq.except excludedHosts
-                |> Seq.distinct
-                |> printDomains serverType
+                    |> getRemoteDomains
+                    |> Seq.append addedHosts
+                    |> Seq.except excludedHosts
+                    |> Seq.distinct
+                    |> printDomains serverType
                 int ExitCodes.Success
