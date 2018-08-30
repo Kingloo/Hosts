@@ -106,9 +106,5 @@ module DataTypes =
             Url = new Uri("https://v.firebog.net/hosts/AdguardDNS.txt");
             Format = (fun raw -> raw)
         }
-        {
-            Name = Firebog;
-            Url = new Uri("https://v.firebog.net/hosts/Airelle-trc.txt");
-            Format = (fun raw -> raw)
-        }
+        // DON'T use https://v.firebog.net/hosts/Airelle-trc.txt - problems with Xbox and Microsoft
     ]
