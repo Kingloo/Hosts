@@ -57,6 +57,7 @@ module DataTypes =
         | AbuseCH
         | MVPS
         | SANS
+        | Firebog
 
     type DomainSource = {
         Name: DomainSourceType
@@ -89,5 +90,25 @@ module DataTypes =
             Name = MVPS;
             Url = new Uri("http://winhelp2002.mvps.org/hosts.txt");
             Format = (fun (raw: string) -> if raw.StartsWith("#") || String.IsNullOrWhiteSpace raw then "" else raw.Split(" ", StringSplitOptions.RemoveEmptyEntries).[1])
+        }
+        {
+            Name = Firebog;
+            Url = new Uri("https://v.firebog.net/hosts/Prigent-Ads.txt");
+            Format = (fun raw -> raw)
+        }
+        {
+            Name = Firebog;
+            Url = new Uri("https://v.firebog.net/hosts/Easyprivacy.txt");
+            Format = (fun raw -> raw)
+        }
+        {
+            Name = Firebog;
+            Url = new Uri("https://v.firebog.net/hosts/AdguardDNS.txt");
+            Format = (fun raw -> raw)
+        }
+        {
+            Name = Firebog;
+            Url = new Uri("https://v.firebog.net/hosts/Airelle-trc.txt");
+            Format = (fun raw -> raw)
         }
     ]

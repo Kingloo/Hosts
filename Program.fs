@@ -70,10 +70,10 @@ module Program =
 
     let printDomains (serverType: DnsServerType) (domains: seq<string>) =
         domains
-        |> Seq.map (fun item ->
-            let dns = List.find (fun (y: DnsServer) -> y.Name = serverType) dnsServerTypes
-            dns.Format item)
-        |> printLines
+            |> Seq.map (fun item ->
+                let dns = List.find (fun (y: DnsServer) -> y.Name = serverType) dnsServerTypes
+                dns.Format item)
+            |> printLines
 
     let loadLinesFromFile filePath =
         try
