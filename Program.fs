@@ -8,16 +8,12 @@ module Program =
     open System.Security
     open DataTypes
 
-    let writeMessage (message: string) =
-        use writer = Console.Error
-        writer.WriteLine(message)
-
-    let determineServerType args : DnsServerType =
-        let typeIdx = Array.tryFindIndex (fun elem -> elem = "-type") args
+    let determineServerType programArgs : DnsServerType =
+        let typeIdx = Array.tryFindIndex (fun elem -> elem = "-type") programArgs
         match typeIdx with
             | Some idx ->
                 try
-                    match args.[idx + 1] with // the domain type will be in the array position after "-type"
+                    match programArgs.[idx + 1] with // the domain type will be in the array position after "-type"
                         | "bind" -> Bind
                         | "unbound" -> Unbound
                         | "windows" -> Windows
@@ -25,6 +21,20 @@ module Program =
                 with
                     | :? IndexOutOfRangeException -> Unknown
             | None -> Missing
+
+    let loadLinesFromFile filePath =
+        try
+            let lines = ((File.ReadAllLines filePath)
+                |> Array.where (fun line -> not (line.StartsWith("#"))))
+            eprintfn "loaded %i lines from %s" lines.Length filePath
+            lines
+        with
+            | :? FileNotFoundException -> eprintfn "%s was not found" filePath ; Array.empty
+            | :? DirectoryNotFoundException -> eprintfn "directory not found" ; Array.empty
+            | :? PathTooLongException -> eprintfn "%s exceeded path character limit" filePath ; Array.empty
+            | :? NotSupportedException -> eprintfn "%s is an unsupported format" filePath ; Array.empty
+            | :? SecurityException -> eprintfn "you do not have the required permissions for %s" filePath ; Array.empty
+            | :? IOException -> eprintfn "an i/o error occurred while opening %s" filePath ; Array.empty
 
     let getLinesFromWebString (webString: string) (domainSource: DomainSource): Async<seq<string>> =
         async {
@@ -40,7 +50,7 @@ module Program =
                         | false, _ -> ()
                 else
                     hasMoreLines <- false
-            writeMessage ("loaded " + lines.Count.ToString() + " lines from " + domainSource.Name.ToString() + " (" + domainSource.Url.AbsoluteUri + ")")
+            eprintfn "loaded %i lines from %s (%s)" lines.Count (domainSource.Name.ToString()) domainSource.Url.AbsoluteUri
             return lines :> seq<string>
         }        
 
@@ -51,61 +61,38 @@ module Program =
                 return! getLinesFromWebString result domainSource
             with
                 | ex ->
-                    writeMessage ("downloading (" + domainSource.Url.AbsoluteUri + ") failed: " + ex.GetType().Name + " (" + ex.Message + ")")
+                    eprintfn "downloading %s failed: %s (%s)" domainSource.Url.AbsoluteUri (ex.GetType().Name) ex.Message
                     return Seq.empty
         }
 
     let getRemoteDomains domainSources : seq<string> =
         use client = new HttpClient()
         domainSources
-            |> List.map (downloadDomainSource (client))
+            |> List.map (downloadDomainSource client)
             |> Async.Parallel
             |> Async.RunSynchronously
-            |> Array.reduce (fun acc item -> Seq.append acc item) // turns an array of seqs into one seq of everything
-
-    let printLines (lines: seq<string>) =
-        use writer = Console.Out
-        lines
-            |> Seq.iter (fun line -> writer.WriteLine(line))
-
-    let printDomains (serverType: DnsServerType) (domains: seq<string>) =
-        domains
-            |> Seq.map (fun item ->
-                let dns = List.find (fun (y: DnsServer) -> y.Name = serverType) dnsServerTypes
-                dns.Format item)
-            |> printLines
-
-    let loadLinesFromFile filePath =
-        try
-            let lines = File.ReadAllLines filePath
-            writeMessage ("loaded " + lines.Length.ToString() + " lines from " + filePath)
-            lines
-        with
-            | :? FileNotFoundException -> writeMessage (filePath + " was not found"); Array.empty
-            | :? DirectoryNotFoundException -> writeMessage "directory not found"; Array.empty
-            | :? PathTooLongException -> writeMessage (filePath + " exceeded path character limit"); Array.empty
-            | :? NotSupportedException -> writeMessage (filePath + " is an unsupported format"); Array.empty
-            | :? SecurityException -> writeMessage ("you do not have the required permissions for " + filePath); Array.empty
-            | :? IOException -> writeMessage ("an i/o error occurred while opening " + filePath); Array.empty
+            |> Array.reduce (fun acc item -> Seq.append acc item) // turns an array of seqs into one seq of everything        
 
     [<EntryPoint>]
     let main args =
         match determineServerType args with
             | Unknown ->
-                writeMessage "! server type unknown !"
+                eprintfn "! server type unknown !"
                 int ExitCodes.ErrorServerTypeUnknown
             | Missing ->
-                writeMessage "! no \"-type\" switch !"
+                eprintfn "! no \"-type\" switch !"
                 int ExitCodes.ErrorServerTypeSwitchMissing
             | serverType ->
                 let customExtras = loadLinesFromFile customExtrasFilePath
+                customExtras
+                    |> Seq.iter (fun x -> printfn "%s" x)
                 let addedHosts = loadLinesFromFile addedHostsFilePath
                 let excludedHosts = loadLinesFromFile excludedHostsFilePath
-                printLines customExtras
                 domainSources
                     |> getRemoteDomains
                     |> Seq.append addedHosts
                     |> Seq.except excludedHosts
                     |> Seq.distinct
-                    |> printDomains serverType
+                    |> Seq.map (DnsServerTypeFormatter serverType)
+                    |> Seq.iter (fun x -> printfn "%s" x)
                 int ExitCodes.Success
