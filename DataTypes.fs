@@ -67,7 +67,7 @@ module DataTypes =
         {
             Name = "MVPS";
             Url = new Uri("http://winhelp2002.mvps.org/hosts.txt");
-            Format = (fun (raw: string) -> if raw.StartsWith("#") || String.IsNullOrWhiteSpace raw then "" else raw.Split(" ", StringSplitOptions.RemoveEmptyEntries).[1])
+            Format = (fun raw -> if raw.StartsWith("#") || String.IsNullOrWhiteSpace raw then "" else raw.Split(" ", StringSplitOptions.RemoveEmptyEntries).[1])
         };
         {
             Name = "Firebog AdGuard DNS";
