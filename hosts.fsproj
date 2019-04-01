@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,8 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="src\DataTypes.fs" />
-    <Compile Include="src\Program.fs" />
+    <Compile Include="src/DnsServers.fs" />
+    <Compile Include="src/DomainSources.fs" />
+    <Compile Include="src/Program.fs" />
   </ItemGroup>
-
+  
 </Project>
