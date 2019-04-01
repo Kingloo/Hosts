@@ -17,7 +17,6 @@ module Program =
     
     let addedHostsFilePath = Path.Combine (directory, "addedHosts.txt")
     let excludedHostsFilePath = Path.Combine (directory, "excludedHosts.txt")
-    let customExtrasFilePath = Path.Combine (directory, "customExtras.txt")
 
     let loadInputLines (filePath: string) : seq<string> =
         try
@@ -51,8 +50,6 @@ module Program =
                 eprintfn "! no \"-type\" switch !"
                 int ExitCodes.ErrorServerTypeSwitchMissing
             | serverType ->
-                let customExtras = loadInputLines customExtrasFilePath
-                customExtras |> printOutputLines
                 let addedHosts = loadInputLines addedHostsFilePath
                 let excludedHosts = loadInputLines excludedHostsFilePath
                 domainSources
