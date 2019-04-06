@@ -3,6 +3,12 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.2</TargetFramework>
+    <Authors>Kingloo</Authors>
+    <NeutralLanguage>en-GB</NeutralLanguage>
+    <AssemblyTitle>Hosts</AssemblyTitle>
+    <AssemblyName>Hosts</AssemblyName>
+    <Copyright>Kingloo © 2019</Copyright>
+    <RepositoryUrl>https://github.com/Kingloo/hosts</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
