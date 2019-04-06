@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,7 +6,6 @@
     <Authors>Kingloo</Authors>
     <NeutralLanguage>en-GB</NeutralLanguage>
     <AssemblyTitle>Hosts</AssemblyTitle>
-    <AssemblyName>Hosts</AssemblyName>
     <Copyright>Kingloo © 2019</Copyright>
     <RepositoryUrl>https://github.com/Kingloo/hosts</RepositoryUrl>
   </PropertyGroup>
