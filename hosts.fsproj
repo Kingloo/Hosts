@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="src/Logger.fs" />
     <Compile Include="src/DnsServers.fs" />
     <Compile Include="src/DomainSources.fs" />
