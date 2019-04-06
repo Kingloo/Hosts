@@ -3,9 +3,12 @@ namespace Hosts
 module DomainSources =
 
     open System
+    open System.Collections.Generic
     open System.IO
     open System.Net.Http
-    open System.Collections.Generic
+    open System.Threading.Tasks
+
+    open Logger
 
     type DomainSource = {
             Name: string
@@ -61,13 +64,17 @@ module DomainSources =
         };
     ]
 
+    // effectively introducing the C# await keyword as a function - bad idea?
+    let await (task: Task<'a>) : Async<'a> =
+        task |> Async.AwaitTask
+
     let downloadStringAsync (client: HttpClient) (url: Uri) : Async<string> =
         async {
             try
-                return! client.GetStringAsync(url) |> Async.AwaitTask
+                return! await (client.GetStringAsync url)
             with
                 | ex ->
-                    eprintfn "downloading %s failed: %s" url.AbsoluteUri ex.Message
+                    printError (sprintf "downloading %s failed: %s" url.AbsoluteUri ex.Message)
                     return String.Empty
         }
 
@@ -77,7 +84,7 @@ module DomainSources =
             use reader = new StringReader(text)
             let mutable hasMoreLines = true
             while hasMoreLines do
-                let! line = reader.ReadLineAsync() |> Async.AwaitTask
+                let! line = await (reader.ReadLineAsync())
                 if not (isNull line) then
                     let formatted = source.Format line
                     if not (formatted.Equals("localhost")) then // we hard-omit localhost from every source just in case
@@ -86,7 +93,7 @@ module DomainSources =
                             | false, _ -> ()
                 else
                     hasMoreLines <- false
-            eprintfn "loaded %i lines from %s (%s)" lines.Count (source.Name.ToString()) source.Url.AbsoluteUri
+            printError (sprintf "loaded %i lines from %s (%s)" lines.Count (source.Name.ToString()) source.Url.AbsoluteUri )
             return lines :> seq<string>
         }
 

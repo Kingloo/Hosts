@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="src/Logger.fs" />
     <Compile Include="src/DnsServers.fs" />
     <Compile Include="src/DomainSources.fs" />
     <Compile Include="src/Program.fs" />

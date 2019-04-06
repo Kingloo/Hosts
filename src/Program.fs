@@ -6,6 +6,7 @@ module Program =
     open System.IO
     open System.Security
     
+    open Logger
     open DnsServers
     open DomainSources
 
@@ -21,19 +22,15 @@ module Program =
     let loadInputLines (filePath: string) : seq<string> =
         try
             let lines = File.ReadAllLines filePath |> Array.where (fun line -> not (line.StartsWith("#")))
-            eprintfn "loaded %i lines from %s" lines.Length filePath
+            printError (sprintf "loaded %i lines from %s" lines.Length filePath)
             lines :> seq<string>
         with
-            | :? FileNotFoundException -> eprintfn "%s was not found" filePath ; Seq.empty
-            | :? DirectoryNotFoundException -> eprintfn "directory not found" ; Seq.empty
-            | :? PathTooLongException -> eprintfn "%s exceeded path character limit" filePath ; Seq.empty
-            | :? NotSupportedException -> eprintfn "%s is an unsupported format" filePath ; Seq.empty
-            | :? SecurityException -> eprintfn "you do not have the required permissions for %s" filePath ; Seq.empty
-            | :? IOException -> eprintfn "an i/o error occurred while opening %s" filePath ; Seq.empty
-
-    let printOutputLines (lines: seq<string>) =
-        lines
-            |> Seq.iter (fun line -> printfn "%s" line)
+            | :? FileNotFoundException -> printError (sprintf "%s was not found" filePath ) ; Seq.empty
+            | :? DirectoryNotFoundException -> printError "directory not found" ; Seq.empty
+            | :? PathTooLongException -> printError (sprintf "%s exceeded path character limit" filePath ) ; Seq.empty
+            | :? NotSupportedException -> printError (sprintf "%s is an unsupported format" filePath ) ; Seq.empty
+            | :? SecurityException -> printError (sprintf "you do not have the required permissions for %s" filePath ) ; Seq.empty
+            | :? IOException -> printError (sprintf "an i/o error occurred while opening %s" filePath ) ; Seq.empty
 
     type ExitCodes =
         | Success = 0
@@ -44,10 +41,10 @@ module Program =
     let main args =
         match determineServerType args with
             | Unknown ->
-                eprintfn "! server type unknown !"
+                printError "! server type unknown !"
                 int ExitCodes.ErrorServerTypeUnknown
             | Missing ->
-                eprintfn "! no \"-type\" switch !"
+                printError "! no \"-type\" switch !"
                 int ExitCodes.ErrorServerTypeSwitchMissing
             | serverType ->
                 let addedHosts = loadInputLines addedHostsFilePath
@@ -58,5 +55,5 @@ module Program =
                     |> Seq.except excludedHosts
                     |> Seq.distinct
                     |> Seq.map (DnsServerFormatter serverType)
-                    |> printOutputLines
+                    |> printLines Console.Out
                 int ExitCodes.Success
