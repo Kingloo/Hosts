@@ -22,8 +22,7 @@ module DnsServers =
             | Missing -> fun _ -> sprintf "server type was missing"
 
     let determineServerType (args: string[]) : DnsServer =
-        let typeIdx = Array.tryFindIndex (fun elem -> elem = "-type") args
-        match typeIdx with
+        match Array.tryFindIndex (fun elem -> elem = "-type") args with
             | Some idx ->
                 try
                     match args.[idx + 1] with // the domain type will be in the array position after "-type"

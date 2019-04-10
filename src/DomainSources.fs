@@ -82,7 +82,7 @@ module DomainSources =
         async {
             let lines = new List<string>()
             use reader = new StringReader(text)
-            let mutable hasMoreLines = true
+            let mutable hasMoreLines = not (String.IsNullOrWhiteSpace(text))
             while hasMoreLines do
                 let! line = await (reader.ReadLineAsync())
                 if not (isNull line) then
@@ -93,7 +93,7 @@ module DomainSources =
                             | false, _ -> ()
                 else
                     hasMoreLines <- false
-            printError (sprintf "loaded %i lines from %s (%s)" lines.Count (source.Name.ToString()) source.Url.AbsoluteUri )
+            printError (sprintf "loaded %i lines from %s (%s)" lines.Count source.Name source.Url.AbsoluteUri )
             return lines :> seq<string>
         }
 
