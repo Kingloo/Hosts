@@ -6,7 +6,6 @@ module DomainSources =
     open System.Collections.Generic
     open System.IO
     open System.Net.Http
-    open System.Threading.Tasks
 
     open Logger
 
@@ -64,49 +63,72 @@ module DomainSources =
         };
     ]
 
-    // effectively introducing the C# await keyword as a function - bad idea?
-    let await (task: Task<'a>) : Async<'a> =
-        task |> Async.AwaitTask
+    let lineValidator (validatorFunction: string -> bool) (line: Option<string>) : Option<string> =
+        match line with
+            | Some s -> 
+                match validatorFunction s with
+                    | true -> Some(s)
+                    | false -> None
+            | None -> None
 
-    let downloadStringAsync (client: HttpClient) (url: Uri) : Async<string> =
+    let isValidUri (line: string) : bool =
+        match Uri.TryCreate("http://" + line, UriKind.Absolute) with
+            | true, _ -> true
+            | false, _ -> false
+
+    let validate (line: string) : bool =
+        let result =
+            Some(line)
+                |> lineValidator (String.IsNullOrWhiteSpace >> not)
+                |> lineValidator (fun line -> line <> "localhost") // we hard-omit localhost just in case
+                |> lineValidator isValidUri
+        match result with
+            | Some _ -> true
+            | None -> false
+
+    let downloadSourceAsync (client: HttpClient) (source: DomainSource) : Async<string> =
         async {
             try
-                return! await (client.GetStringAsync url)
+                return! client.GetStringAsync(source.Url) |> Async.AwaitTask
             with
                 | ex ->
-                    printError (sprintf "downloading %s failed: %s" url.AbsoluteUri ex.Message)
+                    printError (sprintf "downloading %s failed: %s" source.Url.AbsoluteUri ex.Message)
                     return String.Empty
         }
 
-    let formatLinesAsync (text: string) (source: DomainSource) : Async<seq<string>> =
+    let readLinesAsync (text: string) : Async<seq<string>> =
         async {
-            let lines = new List<string>()
             use reader = new StringReader(text)
+            let list = new List<string>()
             let mutable hasMoreLines = not (String.IsNullOrWhiteSpace(text))
-            while hasMoreLines do
-                let! line = await (reader.ReadLineAsync())
-                if not (isNull line) then
-                    let formatted = source.Format line
-                    if not (formatted.Equals("localhost")) then // we hard-omit localhost from every source just in case
-                        match Uri.TryCreate("http://" + formatted, UriKind.Absolute) with
-                            | true, _ -> lines.Add formatted
-                            | false, _ -> ()
-                else
-                    hasMoreLines <- false
-            printError (sprintf "loaded %i lines from %s (%s)" lines.Count source.Name source.Url.AbsoluteUri )
-            return lines :> seq<string>
+            try
+                while hasMoreLines do
+                    let! line = reader.ReadLineAsync() |> Async.AwaitTask
+                    if isNull line then
+                        hasMoreLines <- false
+                    else
+                        list.Add line
+            with
+                | :? ArgumentOutOfRangeException -> ()
+            return list :> seq<string>
         }
 
-    let getSourceHosts (client: HttpClient) (source: DomainSource) : Async<seq<string>> =
+    let getHostsForSource (client: HttpClient) (source: DomainSource) : Async<seq<string>> =
         async {
-            let! text = downloadStringAsync client source.Url
-            return! formatLinesAsync text source
+            let! text = downloadSourceAsync client source
+            let! lines = readLinesAsync text
+            let validLines =
+                lines
+                    |> Seq.map source.Format
+                    |> Seq.filter validate
+            printError (sprintf "found %i valid hosts from %s" (List.ofSeq validLines).Length source.Name)
+            return validLines
         }
-    
-    let getAllSourceHosts (sources: seq<DomainSource>) : seq<string> =
+
+    let getHostsForAllSources (sources: seq<DomainSource>) : seq<string> =
         use client = new HttpClient()
         sources
-            |> Seq.map (getSourceHosts client)
+            |> Seq.map (getHostsForSource client)
             |> Async.Parallel
             |> Async.RunSynchronously
-            |> Array.reduce Seq.append // turns an array of seqs into a single seq of everything
+            |> Array.reduce Seq.append

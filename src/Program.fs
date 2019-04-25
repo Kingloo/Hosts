@@ -21,7 +21,9 @@ module Program =
 
     let loadInputLines (filePath: string) : seq<string> =
         try
-            let lines = File.ReadAllLines filePath |> Array.where (fun line -> not (line.StartsWith("#")))
+            let lines =
+                File.ReadAllLines filePath
+                    |> Array.where (fun line -> not (line.StartsWith("#")))
             printError (sprintf "loaded %i lines from %s" lines.Length filePath)
             lines :> seq<string>
         with
@@ -50,7 +52,7 @@ module Program =
                 let addedHosts = loadInputLines addedHostsFilePath
                 let excludedHosts = loadInputLines excludedHostsFilePath
                 domainSources
-                    |> getAllSourceHosts
+                    |> getHostsForAllSources
                     |> Seq.append addedHosts
                     |> Seq.except excludedHosts
                     |> Seq.distinct
