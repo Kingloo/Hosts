@@ -4,9 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.2</TargetFramework>
     <Authors>Kingloo</Authors>
-    <NeutralLanguage>en-GB</NeutralLanguage>
     <AssemblyTitle>Hosts</AssemblyTitle>
-    <Copyright>Kingloo © 2019</Copyright>
     <RepositoryUrl>https://github.com/Kingloo/hosts</RepositoryUrl>
   </PropertyGroup>
 
@@ -15,10 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="src/Logger.fs" />
-    <Compile Include="src/DnsServers.fs" />
-    <Compile Include="src/DomainSources.fs" />
-    <Compile Include="src/Program.fs" />
+    <Compile Include="Logger.fs" />
+    <Compile Include="DnsServers.fs" />
+    <Compile Include="DomainSources.fs" />
+    <Compile Include="Program.fs" />
   </ItemGroup>
   
 </Project>
