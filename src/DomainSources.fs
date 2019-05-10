@@ -63,13 +63,18 @@ module DomainSources =
         };
     ]
 
-    let lineValidator (validatorFunction: string -> bool) (line: Option<string>) : Option<string> =
+    let lineValidator (validatorFunction: string -> bool) (line: string option) : string option =
         match line with
             | Some s -> 
                 match validatorFunction s with
                     | true -> Some(s)
                     | false -> None
             | None -> None
+
+    // let lineValidator (validatorFunction: string -> bool option) (line: string option) : bool option =
+    //     match line with
+    //         | Some s -> s |> validatorFunction
+    //         | None -> None
 
     let isValidUri (line: string) : bool =
         match Uri.TryCreate("http://" + line, UriKind.Absolute) with
@@ -92,7 +97,7 @@ module DomainSources =
                 return! client.GetStringAsync(source.Url) |> Async.AwaitTask
             with
                 | ex ->
-                    printError (sprintf "downloading %s failed: %s" source.Url.AbsoluteUri ex.Message)
+                    printError (sprintf "downloading %s (%s) failed: %s" source.Name source.Url.AbsoluteUri ex.Message)
                     return String.Empty
         }
 
