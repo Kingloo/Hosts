@@ -15,7 +15,7 @@
   <ItemGroup>
     <Compile Include="Logger.fs" />
     <Compile Include="DnsServers.fs" />
-    <Compile Include="DomainSources.fs" />
+    <Compile Include="HostNameSources.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   

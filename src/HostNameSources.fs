@@ -1,6 +1,6 @@
 namespace Hosts
 
-module DomainSources =
+module HostNameSources =
 
     open System
     open System.Collections.Generic
@@ -9,13 +9,13 @@ module DomainSources =
 
     open Logger
 
-    type DomainSource = {
+    type HostNameSource = {
             Name: string
             Url: Uri
             Format: string -> string
         }
 
-    let domainSources = [
+    let hostNameSources = [
         {
             Name = "AbuseCH";
             Url = new Uri("https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt");
@@ -63,35 +63,25 @@ module DomainSources =
         };
     ]
 
-    let lineValidator (validatorFunction: string -> bool) (line: string option) : string option =
-        match line with
-            | Some s -> 
-                match validatorFunction s with
-                    | true -> Some(s)
-                    | false -> None
-            | None -> None
+    let isNotNullOrWhiteSpace (line: string) : bool = not (String.IsNullOrWhiteSpace line)
+    let isNotComment (line: string) : bool = not (line.StartsWith("#", StringComparison.OrdinalIgnoreCase))
+    let isValidUri (line: string) : bool = fst (Uri.TryCreate("http://" + line, UriKind.Absolute))
+    let isNotLocalhost (line: string) : bool = line <> "localhost" // we hard-omit localhost just in case
 
-    // let lineValidator (validatorFunction: string -> bool option) (line: string option) : bool option =
-    //     match line with
-    //         | Some s -> s |> validatorFunction
-    //         | None -> None
+    let lineValidators =
+        [
+            isNotNullOrWhiteSpace;
+            isNotComment;
+            isValidUri;
+            isNotLocalhost
+        ]
 
-    let isValidUri (line: string) : bool =
-        match Uri.TryCreate("http://" + line, UriKind.Absolute) with
-            | true, _ -> true
-            | false, _ -> false
+    let validateLine (validators: (string -> bool) list) (line: string) : bool =
+        validators
+            |> List.map (fun validator -> validator(line))
+            |> List.forall ((=) true)
 
-    let validate (line: string) : bool =
-        let result =
-            Some(line)
-                |> lineValidator (String.IsNullOrWhiteSpace >> not)
-                |> lineValidator (fun line -> line <> "localhost") // we hard-omit localhost just in case
-                |> lineValidator isValidUri
-        match result with
-            | Some _ -> true
-            | None -> false
-
-    let downloadSourceAsync (client: HttpClient) (source: DomainSource) : Async<string> =
+    let downloadSourceAsync (client: HttpClient) (source: HostNameSource) : Async<string> =
         async {
             try
                 return! client.GetStringAsync(source.Url) |> Async.AwaitTask
@@ -118,22 +108,22 @@ module DomainSources =
             return list :> seq<string>
         }
 
-    let getHostsForSource (client: HttpClient) (source: DomainSource) : Async<seq<string>> =
+    let getHostNamesFromSource (client: HttpClient) (source: HostNameSource) : Async<seq<string>> =
         async {
             let! text = downloadSourceAsync client source
             let! lines = readLinesAsync text
             let validLines =
                 lines
                     |> Seq.map source.Format
-                    |> Seq.filter validate
+                    |> Seq.filter (validateLine lineValidators)
             printError (sprintf "found %i valid hosts from %s" (List.ofSeq validLines).Length source.Name)
             return validLines
         }
 
-    let getHostsForAllSources (sources: seq<DomainSource>) : seq<string> =
+    let getHostNamesFromAllSources (sources: seq<HostNameSource>) : seq<string> =
         use client = new HttpClient()
         sources
-            |> Seq.map (getHostsForSource client)
+            |> Seq.map (getHostNamesFromSource client)
             |> Async.Parallel
             |> Async.RunSynchronously
             |> Array.reduce Seq.append

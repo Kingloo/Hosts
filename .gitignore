@@ -289,3 +289,5 @@ __pycache__/
 
 # Custom
 *.txt
+.ionide/
+.vs/
