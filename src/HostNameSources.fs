@@ -114,8 +114,8 @@ module HostNameSources =
             let! lines = readLinesAsync text
             let validLines =
                 lines
-                    |> Seq.map source.Format
                     |> Seq.filter (validateLine lineValidators)
+                    |> Seq.map source.Format
             printError (sprintf "found %i valid hosts from %s" (List.ofSeq validLines).Length source.Name)
             return validLines
         }
