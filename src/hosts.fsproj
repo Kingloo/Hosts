@@ -2,14 +2,14 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <Authors>Kingloo</Authors>
     <AssemblyTitle>Hosts</AssemblyTitle>
     <RepositoryUrl>https://github.com/Kingloo/hosts</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="4.6.2" />
+    <PackageReference Include="FSharp.Core" Version="4.7.0" />
   </ItemGroup>
 
   <ItemGroup>
