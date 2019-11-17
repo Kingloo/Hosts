@@ -18,18 +18,18 @@ module Program =
     let additionalHostsFilePath = Path.Combine (directory, "addedHosts.txt")
     let excludedHostsFilePath = Path.Combine (directory, "excludedHosts.txt")
 
-    let loadLinesFromFilePath (filePath: string) : seq<string> =
+    let loadLinesFromFilePath (filePath: string) : string list =
         try
             let lines =
                 File.ReadAllLines filePath
                     |> Array.where (fun line -> not (line.StartsWith("#", StringComparison.OrdinalIgnoreCase)))
-                    |> Array.where (fun line -> not (String.IsNullOrWhiteSpace(line)))
+                    |> Array.where (fun line -> line |> (String.IsNullOrWhiteSpace >> not))
             printError (sprintf "loaded %i lines from %s" lines.Length filePath)
-            lines :> seq<string>
+            lines |> List.ofArray
         with
             | ex ->
-                printError (sprintf "loading from file (%s) failed: %s: %s" filePath (ex.GetType().FullName) ex.Message)
-                Seq.empty
+                printError (sprintf "loading from file failed: %s: %s" (ex.GetType().FullName) ex.Message)
+                List.empty
 
     type ExitCodes =
         | Success = 0
@@ -50,9 +50,9 @@ module Program =
                 let excludedHostNames = loadLinesFromFilePath excludedHostsFilePath
                 hostNameSources
                     |> getHostNamesFromAllSources
-                    |> Seq.append additionalHostNames
-                    |> Seq.except excludedHostNames
-                    |> Seq.distinct
-                    |> Seq.map (DnsServerFormatter serverType)
+                    |> List.append additionalHostNames
+                    |> List.except excludedHostNames
+                    |> List.distinct
+                    |> List.map (DnsServerFormatter serverType)
                     |> printLines Console.Out
                 int ExitCodes.Success

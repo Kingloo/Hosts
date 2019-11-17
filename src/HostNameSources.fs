@@ -73,7 +73,7 @@ module HostNameSources =
             isNotNullOrWhiteSpace;
             isNotComment;
             isValidUri;
-            isNotLocalhost
+            isNotLocalhost;
         ]
 
     let validateLine (validators: (string -> bool) list) (line: string) : bool =
@@ -95,7 +95,7 @@ module HostNameSources =
         async {
             use reader = new StringReader(text)
             let list = new List<string>()
-            let mutable hasMoreLines = not (String.IsNullOrWhiteSpace(text))
+            let mutable hasMoreLines = not (String.IsNullOrWhiteSpace text)
             try
                 while hasMoreLines do
                     let! line = reader.ReadLineAsync() |> Async.AwaitTask
@@ -108,22 +108,22 @@ module HostNameSources =
             return list :> seq<string>
         }
 
-    let getHostNamesFromSource (client: HttpClient) (source: HostNameSource) : Async<seq<string>> =
+    let getHostNamesFromSource (client: HttpClient) (source: HostNameSource) : Async<string list> =
         async {
             let! text = downloadSourceAsync client source
             let! lines = readLinesAsync text
             let validLines =
                 lines
+                    |> Seq.map source.Format // must format before we filter out
                     |> Seq.filter (validateLine lineValidators)
-                    |> Seq.map source.Format
             printError (sprintf "found %i valid hosts from %s" (List.ofSeq validLines).Length source.Name)
-            return validLines
+            return validLines |> List.ofSeq
         }
 
-    let getHostNamesFromAllSources (sources: seq<HostNameSource>) : seq<string> =
+    let getHostNamesFromAllSources (sources: HostNameSource list) : string list =
         use client = new HttpClient()
         sources
             |> Seq.map (getHostNamesFromSource client)
             |> Async.Parallel
             |> Async.RunSynchronously
-            |> Array.reduce Seq.append
+            |> Array.reduce List.append
