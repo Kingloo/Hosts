@@ -25,7 +25,7 @@ module DnsServers =
         match Array.tryFindIndex (fun elem -> elem = "-type") args with
             | Some idx ->
                 try
-                    match args.[idx + 1] with // the domain type will be in the array position after "-type"
+                    match args.[idx + 1] with // the domain type will be in the array position after "-type", e.g. "-type bind"
                         | "bind" -> Bind
                         | "unbound" -> Unbound
                         | "windows" -> Windows
