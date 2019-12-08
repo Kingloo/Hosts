@@ -95,7 +95,7 @@ module HostNameSources =
         async {
             use reader = new StringReader(text)
             let list = new List<string>()
-            let mutable hasMoreLines = not (String.IsNullOrWhiteSpace text)
+            let mutable hasMoreLines = text |> (String.IsNullOrWhiteSpace >> not)
             try
                 while hasMoreLines do
                     let! line = reader.ReadLineAsync() |> Async.AwaitTask
