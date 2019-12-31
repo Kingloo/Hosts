@@ -16,11 +16,11 @@ module HostNameSources =
         }
 
     let hostNameSources = [
-        {
-            Name = "AbuseCH";
-            Url = new Uri("https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt");
-            Format = (fun raw -> if raw.StartsWith("#") then "" else raw)
-        };
+        // {
+        //     Name = "AbuseCH";
+        //     Url = new Uri("https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt");
+        //     Format = (fun raw -> if raw.StartsWith("#") then "" else raw)
+        // };
         {
             Name = "SANS Suspicious Low";
             Url = new Uri("https://isc.sans.edu/feeds/suspiciousdomains_Low.txt");
