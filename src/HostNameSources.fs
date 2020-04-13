@@ -16,11 +16,6 @@ module HostNameSources =
         }
 
     let hostNameSources = [
-        // {
-        //     Name = "AbuseCH";
-        //     Url = new Uri("https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt");
-        //     Format = (fun raw -> if raw.StartsWith("#") then "" else raw)
-        // };
         {
             Name = "SANS Suspicious Low";
             Url = new Uri("https://isc.sans.edu/feeds/suspiciousdomains_Low.txt");
@@ -84,7 +79,7 @@ module HostNameSources =
     let downloadSourceAsync (client: HttpClient) (source: HostNameSource) : Async<string> =
         async {
             try
-                return! client.GetStringAsync(source.Url) |> Async.AwaitTask
+                return! client.GetStringAsync source.Url |> Async.AwaitTask
             with
                 | ex ->
                     printError (sprintf "downloading %s (%s) failed: %s" source.Name source.Url.AbsoluteUri ex.Message)
