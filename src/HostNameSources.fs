@@ -16,21 +16,21 @@ module HostNameSources =
         }
 
     let hostNameSources = [
-        {
-            Name = "SANS Suspicious Low";
-            Url = new Uri("https://isc.sans.edu/feeds/suspiciousdomains_Low.txt");
-            Format = (fun raw -> if raw.StartsWith("#") || raw.StartsWith("site") then "" else raw)
-        };
-        {
-            Name = "SANS Suspicious Medium";
-            Url = new Uri("https://isc.sans.edu/feeds/suspiciousdomains_Medium.txt");
-            Format = (fun raw -> if raw.StartsWith("#") || raw.StartsWith("site") then "" else raw)
-        };
-        {
-            Name = "SANS Suspicious High";
-            Url = new Uri("https://isc.sans.edu/feeds/suspiciousdomains_High.txt");
-            Format = (fun raw -> if raw.StartsWith("#") || raw.StartsWith("site") then "" else raw)
-        };
+        // {
+        //     Name = "SANS Suspicious Low";
+        //     Url = new Uri("https://isc.sans.edu/feeds/suspiciousdomains_Low.txt");
+        //     Format = (fun raw -> if raw.StartsWith("#") || raw.StartsWith("site") then "" else raw)
+        // };
+        // {
+        //     Name = "SANS Suspicious Medium";
+        //     Url = new Uri("https://isc.sans.edu/feeds/suspiciousdomains_Medium.txt");
+        //     Format = (fun raw -> if raw.StartsWith("#") || raw.StartsWith("site") then "" else raw)
+        // };
+        // {
+        //     Name = "SANS Suspicious High";
+        //     Url = new Uri("https://isc.sans.edu/feeds/suspiciousdomains_High.txt");
+        //     Format = (fun raw -> if raw.StartsWith("#") || raw.StartsWith("site") then "" else raw)
+        // };
         {
             Name = "MVPS";
             Url = new Uri("http://winhelp2002.mvps.org/hosts.txt");
