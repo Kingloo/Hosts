@@ -11,8 +11,9 @@ module Program =
 
 #if DEBUG
     let directory = Environment.CurrentDirectory
+    // let directory = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location)
 #else
-    let directory = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location)
+    let directory = Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName)
 #endif
     
     let additionalHostsFilePath = Path.Combine (directory, "addedHosts.txt")
